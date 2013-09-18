@@ -132,6 +132,19 @@ module Databasedotcom
       self.oauth_token
     end
 
+    def reauthenticate
+      raise SalesForceError.new("No refresh token available") if self.refresh_token.nil?
+      response = with_encoded_path_and_checked_response("/services/oauth2/token", { :grant_type => "refresh_token", :refresh_token => self.refresh_token, :client_id => self.client_id, :client_secret => self.client_secret}, :host => self.host) do |encoded_path|
+        p encoded_path
+        response = https_request(self.host).post(encoded_path, nil)
+        p response.body
+        if response.is_a?(Net::HTTPOK)
+          parse_auth_response(response.body)
+        end
+        response
+      end
+    end
+
     # The SalesForce organization id for the authenticated user's Salesforce instance
     def org_id
       @org_id ||= query_org_id # lazy query org_id when not set by login response
